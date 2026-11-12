@@ -3,22 +3,22 @@ Grande Tricksters’ Automated Victorious Individualization Project Computer Por
 
 # Full Individual Research Project Plan — Legacy Game Modernization & Full Rust Reimplementation
 
-Project specification · Technical research plan · Architecture · Reverse engineering · Implementation · Testing · Deployment
+Project specification · Technical research plan · Architecture · Legacy analysis · Implementation · Testing · Deployment
 
 The project should be treated as a complete modernization and controlled reimplementation of the legacy game, rather than a conventional source-code port.
 
-The central objective is to understand the existing game's functionality, document its systems, reproduce the required gameplay behavior, eliminate unnecessary legacy dependencies, and establish a modern Rust-based architecture that performs exceptionally well on Linux and through the specified Wine environment.
+The legacy game is a 3D open-world, story-driven title. The central objective is to understand its functionality, document its systems, reproduce the required gameplay behavior, eliminate unnecessary legacy dependencies, and establish a modern Rust-based architecture that performs exceptionally well on Linux and through the specified Wine environment.
 
 The plan below uses several fundamental principles:
 
-1. Read-only legacy source: The original source code is never modified. All implementation takes place in a separate, newly created repository.
+1. Read-only legacy baseline: The legacy tree is a read-only reference; all changes happen in the new repository.
 2. Offline-first research: No source code, game assets, behavioral traces, system information, or development telemetry may leave the local environment.
 3. Mock-first development: Dependencies are mocked before real implementations are introduced.
 4. Rust-first architecture: New systems are implemented in Rust. C++ is retained only when a documented technical justification exists.
 5. Performance-driven engineering: Correctness comes first, followed by profiling-driven CPU, GPU, memory, and latency optimization.
 6. Complete documentation: Every analyzed legacy subsystem receives its own documentation, and every replacement links back to its corresponding analysis.
 7. Strict testing: Every feature requires unit tests and system tests, with offline behavioral testing in isolated Podman containers.
-8. Modular architecture: Network functionality is not required for the initial game experience, but future network integration must remain architecturally possible.
+8. Modular architecture: Multiplayer and networking are deferred; the runtime stays fully offline, and the architecture must merely not preclude adding them later.
 
 ## 1. Important architectural decisions
 
@@ -29,15 +29,15 @@ Before implementation, establish these boundaries:
 | Primary language | Rust |
 | Legacy language | C++ for analysis and exceptional compatibility cases |
 | Assembly | Selective, measured optimizations |
-| Linux compatibility | musl and glibc |
+| Linux compatibility | glibc primary; musl tracked as future work |
 | Primary GPU target | AMD / Mesa / Vulkan |
 | NVIDIA | Compatibility where practical |
 | Windows execution | Wine + Vulkan |
-| Multiplayer | Removed from initial implementation |
-| Networking | Offline mocks and replaceable interfaces |
+| Multiplayer | Deferred — not implemented |
+| Networking | Deferred — offline runtime, replaceable boundaries only |
 | Frame generation | Removed |
 | Telemetry and device tracking | Removed |
-| Licensing | Simplified only within authorized ownership and redistribution boundaries |
+| Licensing | Legacy licensing system dropped; no replacement |
 | Localization | Centralized multilingual asset architecture |
 | Source repository | Read-only legacy reference |
 | New repository | Independent Rust implementation |
@@ -54,15 +54,58 @@ The preferred approach is:
 - Preserve only the behavior that is necessary for the intended game experience.
 - Reconstruct interfaces instead of preserving obsolete dependencies.
 - Replace platform-specific and hardware-specific functionality with portable abstractions.
-- Remove unnecessary anti-copy, telemetry, device-identification, and licensing subsystems only where ownership and applicable legal permissions authorize doing so.
+- Remove anti-copy, telemetry, device-identification, and licensing subsystems; all legacy code and assets are project-owned and free to rework.
 - Introduce assembly only after profiling demonstrates a meaningful benefit.
 
 For the initial implementation, use a modular monolith rather than dozens of independent services. This avoids unnecessary IPC, synchronization, memory duplication, and runtime overhead.
 
-## 2. Project phases and execution order
+### 1.2 Target game profile
 
-1. Phase 00 — Project authorization, scope and preservation
-   Establish source ownership, source-read-only guarantees, asset permissions, repository boundaries, and technical acceptance criteria.
+The legacy game is a 3D open-world, story-driven title. The reimplementation targets:
+
+- A large, seamless world with partition-based streaming.
+- Level-of-detail and occlusion-driven rendering of distant world content.
+- Time-of-day and weather simulation.
+- NPC, crowd, and traffic agents.
+- Mission, quest, and scripted-event sequencing.
+- Cutscene and dialogue playback integrated with localization.
+- Persistent story progression in save data.
+
+These properties drive the subsystem inventory in Phase 05, the performance targets, and the long-duration tests in Phase 10.
+
+## 2. Contributor workflow and secure asset distribution
+
+All contributors follow the same secure workflow. Game assets are critical project files that must not leak, and all contributor traffic must avoid direct clearnet exposure.
+
+### 2.1 Contributor transport
+
+- All contributors use i2pd for repository access and project communication.
+- Git is reached through the local i2pd HTTP or SOCKS proxy, or through an SSH tunnel over I2P.
+- Direct clearnet Git remotes and plain Internet hosts are not used.
+- i2pd is development-time tooling only. It is never linked into, invoked by, or required by the game, and the runtime remains fully offline.
+
+### 2.2 Asset distribution
+
+- Game assets are distributed as i2pd torrents (i2psnark-style), never through Git and never over clearnet.
+- The repository contains only a signed asset manifest with asset IDs, hashes, and versions.
+- Assets are reused from the legacy game but are never committed to Git.
+- `/assets` is git-ignored. Asset directories exist only in local working copies.
+
+### 2.3 Asset indirection in code
+
+- No asset file names, paths, or literal asset identifiers may appear in code.
+- Code references assets only through registry IDs or stable handles resolved at runtime from the local manifest.
+- Tests use synthetic fixtures and never require real game assets.
+
+### 2.4 Repository content
+
+- The repository contains source code, configuration, documentation, manifests, and tests.
+- Binary assets, model files, local caches, analysis databases, and build output are excluded.
+
+## 3. Project phases and execution order
+
+1. Phase 00 — Project scope, baseline and preservation
+   Establish the source baseline, read-only guarantees, asset inventory, repository boundaries, and technical acceptance criteria.
 2. Phase 01 — Development environment and offline infrastructure
    Build the Podman environment, local AI integration, reproducible toolchains, source inventory, and test infrastructure.
 3. Phase 02 — Legacy source code analysis
@@ -80,13 +123,13 @@ For the initial implementation, use a modular monolith rather than dozens of ind
 9. Phase 08 — Performance engineering
    Optimize CPU, GPU, memory, I/O, compilation, startup, frame pacing, and latency.
 10. Phase 09 — Linux and Wine compatibility
-    Validate Void Linux, musl/glibc, Vulkan, AMD graphics, Wine, NTSync, Wayland, and the specified gaming environment.
+    Validate Void Linux with glibc, Vulkan, AMD graphics, Wine, NTSync, Wayland, and the specified gaming environment. musl is tracked as future work.
 11. Phase 10 — Final validation and release
     Complete regression testing, offline security audits, performance qualification, documentation, packaging, and reproducible release builds.
 
-## 3. Critical technical considerations
+## 4. Critical technical considerations
 
-### 3.1 The 500 GB source-code requirement
+### 4.1 The 500 GB source-code requirement
 
 A 500 GB repository must not be handled as one enormous source-analysis task.
 
@@ -108,7 +151,7 @@ A strict memory budget must be enforced independently of available system RAM.
 
 Importantly, a 500 GB source tree does not imply that every source file must be loaded into memory or that all files should be compiled simultaneously.
 
-### 3.2 Rust coding standards
+### 4.2 Rust coding standards
 
 The Google Rust Style Guide must be a mandatory engineering standard, not merely a recommendation.
 
@@ -131,7 +174,7 @@ The project should additionally enforce:
 
 The Google guide should take precedence where its recommendations differ from generic Rust conventions, while compatible official Rust conventions remain applicable.
 
-### 3.3 REA analysis integration
+### 4.3 REA analysis integration
 
 [morluto/rea — Reverse Engineer Anything](<https://github.com/morluto/rea?utm_source=chatgpt.com>) can be integrated as an optional local analysis tool.
 
@@ -148,11 +191,7 @@ REA findings must be treated as hypotheses supported by evidence, not automatica
 
 Its agent/model integration must be configured for a local model and verified to have no external data transmission. REA's local analysis capabilities alone do not guarantee that every connected AI provider is local.
 
-GitHub
-
-+1
-
-## 4. Complete project work breakdown structure
+## 5. Complete project work breakdown structure
 
 The following is the proposed implementation specification. It uses hierarchical identifiers so that individual functions, tests, decisions, and documentation can be traced throughout the project.
 
@@ -171,7 +210,7 @@ For example:
 
 Every leaf-level task must have an owner, prerequisites, implementation specification, test specification, documentation reference, and completion criteria.
 
-### Phase 00 — Authorization, preservation and project definition
+### Phase 00 — Baseline, preservation and project definition
 
 P00.01 — Source preservation
 
@@ -191,8 +230,8 @@ P00.02 — Project boundaries
 - P00.02.01 Define supported gameplay.
 - P00.02.02 Define excluded legacy functionality.
 - P00.02.03 Define local-only execution.
-- P00.02.04 Define permitted assets.
-- P00.02.05 Define redistribution permissions.
+- P00.02.04 Define the required asset inventory.
+- P00.02.05 Define build and release distribution targets.
 - P00.02.06 Define platform compatibility.
 - P00.02.07 Define performance targets.
 - P00.02.08 Define localization requirements.
@@ -217,8 +256,6 @@ P00.03 — Technical decision framework
 P01.01 — Repository setup
 
 Recommended initial structure:
-
-text
 
 ```text
 
@@ -247,10 +284,9 @@ game-modernization/
 │   ├── game_localization/
 │   ├── game_persistence/
 │   ├── game_ui/
-│   ├── game_network_mock/
 │   ├── game_diagnostics/
 │   └── game_launcher/
-├── assets/
+├── assets/                  # local only, git-ignored, synced via i2pd torrents
 │   ├── common/
 │   ├── languages/
 │   ├── fonts/
@@ -302,7 +338,7 @@ game-modernization/
 │   ├── test/
 │   ├── analysis/
 │   └── release/
-└── build/
+└── build/                   # local output, git-ignored
 ```
 
 P01.02 — Git configuration
@@ -314,13 +350,12 @@ P01.02 — Git configuration
 - P01.02.05 Exclude local AI model files.
 - P01.02.06 Exclude source-analysis databases where appropriate.
 - P01.02.07 Exclude runtime caches and temporary data.
-- P01.02.08 Verify binary asset handling.
+- P01.02.08 Verify that local assets are excluded from version control.
 - P01.02.09 Establish commit conventions.
 - P01.02.10 Establish changelog conventions.
+- P01.02.11 Configure i2pd-based contributor transport.
 
 Recommended `.gitattributes`:
-
-gitattributes
 
 ```gitattributes
 * text=auto eol=lf
@@ -343,6 +378,8 @@ gitattributes
 *.pak binary
 *.bin binary
 ```
+
+Asset binaries are distributed outside Git and never committed; these rules exist only as a safety net for accidental additions.
 
 P01.03 — Rust toolchain
 
@@ -459,7 +496,7 @@ P02.03 — C++ static analysis
 
 P02.04 — Runtime behavior analysis
 
-Only execute the legacy application in a controlled environment with authorized assets and no external network access.
+Execute the legacy application only in an isolated environment with local assets and no external network access.
 
 - P02.04.01 Identify startup sequence.
 - P02.04.02 Identify initialization order.
@@ -501,11 +538,11 @@ P02.06 — Security and privacy analysis
 - P02.06.03 Inventory tracking functionality.
 - P02.06.04 Inventory external endpoints.
 - P02.06.05 Inventory crash-reporting services.
-- P02.06.06 Inventory licensing dependencies.
+- P02.06.06 Inventory licensing, activation and entitlement components (all removal targets).
 - P02.06.07 Inventory update mechanisms.
 - P02.06.08 Inventory anti-tamper dependencies.
 - P02.06.09 Identify data collection and storage.
-- P02.06.10 Establish authorized removal specifications.
+- P02.06.10 Establish removal specifications.
 - P02.06.11 Verify absence of tracking in the replacement.
 - P02.06.12 Verify absence of external communication.
 
@@ -682,6 +719,16 @@ P05.02 — World simulation
 - P05.02.08 Game rules.
 - P05.02.09 Time progression.
 - P05.02.10 Deterministic simulation.
+- P05.02.11 World partition and streaming.
+- P05.02.12 Level-of-detail management.
+- P05.02.13 Day/night cycle.
+- P05.02.14 Weather simulation.
+- P05.02.15 Crowd and traffic agents.
+- P05.02.16 Navigation and pathfinding.
+- P05.02.17 Mission and quest state machine.
+- P05.02.18 Scripted event sequencing.
+- P05.02.19 Cutscene sequencer.
+- P05.02.20 Persistent story state.
 
 P05.03 — Rendering
 
@@ -705,6 +752,9 @@ P05.03 — Rendering
 - P05.03.18 GPU resource destruction.
 - P05.03.19 AMD-specific validation.
 - P05.03.20 NVIDIA compatibility validation.
+- P05.03.21 LOD pipeline.
+- P05.03.22 Occlusion and distance culling.
+- P05.03.23 Terrain and weather effects.
 
 P05.04 — Input
 
@@ -746,6 +796,10 @@ P05.06 — Assets
 - P05.06.08 Asset versioning.
 - P05.06.09 Compression.
 - P05.06.10 Corruption handling.
+- P05.06.11 World-partition manifests.
+- P05.06.12 Streamed asset packs.
+- P05.06.13 Streaming budget enforcement.
+- P05.06.14 Asynchronous asset I/O.
 
 P05.07 — UI
 
@@ -759,6 +813,9 @@ P05.07 — UI
 - P05.07.08 Text input.
 - P05.07.09 Accessibility.
 - P05.07.10 Dynamic localization.
+- P05.07.11 Subtitles.
+- P05.07.12 Cutscene skip.
+- P05.07.13 Journal and quest log.
 
 P05.08 — Persistence
 
@@ -803,22 +860,29 @@ P06.02 — Local gameplay conversion
 - P06.02.09 Validate gameplay without external endpoints.
 - P06.02.10 Validate shutdown without network activity.
 
-P06.03 — Future extension interfaces
+P06.03 — Future extension boundaries
 
-Create mock interfaces for:
+Networking and multiplayer are deferred, so no networking crate or mock implementation is built now. Keep the following boundaries replaceable so they can be added later without restructuring:
 
-- `NetworkTransport`
-- `SessionProvider`
-- `RemotePlayerProvider`
-- `WorldReplication`
-- `MessageSerializer`
-- `ConnectionState`
-- `NetworkClock`
-- `RemotePersistence`
+- Transport and connection state.
+- Session and player providers.
+- World replication and remote persistence.
+- Message serialization and network clock.
 
-These must be inert by default. They should not contain hidden network initialization, DNS lookup, socket creation, or background connection attempts.
+These boundaries must remain inert by default: no hidden network initialization, DNS lookup, socket creation, or background connection attempts. The local game must not depend on them.
 
-The local game must not depend on them.
+P06.04 — Licensing removal
+
+- P06.04.01 Remove license checks.
+- P06.04.02 Remove activation.
+- P06.04.03 Remove entitlement validation.
+- P06.04.04 Remove hardware binding.
+- P06.04.05 Remove online verification.
+- P06.04.06 Remove license UI and dialogs.
+- P06.04.07 Remove licensing configuration and files.
+- P06.04.08 Verify startup without license artifacts.
+- P06.04.09 Verify gameplay without account or activation.
+- P06.04.10 Verify no replacement licensing system exists.
 
 ### Phase 07 — Full localization architecture
 
@@ -888,8 +952,6 @@ P07.05 — Voice-over
 - P07.05.10 Voice-over regression tests.
 
 P07.06 — Central language asset structure
-
-text
 
 ```text
 
@@ -1012,7 +1074,7 @@ P08.04 — Peak resource testing
 P09.01 — Void Linux
 
 - P09.01.01 Validate glibc build.
-- P09.01.02 Validate musl build where supported.
+- P09.01.02 Track musl build compatibility as future work.
 - P09.01.03 Validate dynamic dependencies.
 - P09.01.04 Validate Vulkan loader.
 - P09.01.05 Validate AMD Mesa drivers.
@@ -1176,6 +1238,9 @@ P10.06 — Performance testing
 - P10.06.12 Memory fragmentation.
 - P10.06.13 Resource cleanup.
 - P10.06.14 Performance regression.
+- P10.06.15 World traversal soak test.
+- P10.06.16 Streaming hitch measurement.
+- P10.06.17 Mission and story regression.
 
 ### Phase 11 — Release engineering
 
@@ -1184,26 +1249,24 @@ P11.01 — Build qualification
 - P11.01.01 Reproducible release build.
 - P11.01.02 Rust dependency verification.
 - P11.01.03 Offline build verification.
-- P11.01.04 musl qualification.
-- P11.01.05 glibc qualification.
-- P11.01.06 Vulkan validation.
-- P11.01.07 AMD GPU validation.
-- P11.01.08 Wine validation.
-- P11.01.09 Asset integrity verification.
-- P11.01.10 Binary dependency audit.
+- P11.01.04 glibc qualification.
+- P11.01.05 Vulkan validation.
+- P11.01.06 AMD GPU validation.
+- P11.01.07 Wine validation.
+- P11.01.08 Asset integrity verification.
+- P11.01.09 Binary dependency audit.
 
 P11.02 — Release packaging
 
 - P11.02.01 Linux package.
 - P11.02.02 Portable Linux package.
-- P11.02.03 musl-compatible package where feasible.
-- P11.02.04 glibc-compatible package.
-- P11.02.05 Wine-compatible executable/package.
-- P11.02.06 Language asset packages.
-- P11.02.07 Configuration defaults.
-- P11.02.08 Local documentation.
-- P11.02.09 Release manifest.
-- P11.02.10 Checksums.
+- P11.02.03 glibc-compatible package.
+- P11.02.04 Wine-compatible executable/package.
+- P11.02.05 Language asset packages.
+- P11.02.06 Configuration defaults.
+- P11.02.07 Local documentation.
+- P11.02.08 Release manifest.
+- P11.02.09 Checksums.
 
 P11.03 — Final release acceptance
 
@@ -1223,11 +1286,9 @@ A release is permitted only when:
 - No known critical data-corruption issues remain.
 - All architectural decisions are documented.
 
-## 5. Required testing architecture
+## 6. Required testing architecture
 
 I strongly recommend a unified test contract for every feature.
-
-text
 
 ```text
 
@@ -1273,7 +1334,7 @@ Feature
     └── Acceptance result
 ```
 
-### 5.1 Test isolation rules
+### 6.1 Test isolation rules
 
 Every test container should follow these rules:
 
@@ -1294,7 +1355,7 @@ Every test container should follow these rules:
 
 One important distinction: a GPU system test cannot be completely hardware-independent. Keep ordinary behavioral tests GPU-mocked, and run dedicated Vulkan hardware tests in a separately restricted environment.
 
-### 5.2 Testing levels
+### 6.2 Testing levels
 
 | Level | Scope | Required |
 | --- | --- | --- |
@@ -1308,7 +1369,7 @@ One important distinction: a GPU system test cannot be completely hardware-indep
 | L8 | Long-duration stress | Yes |
 | L9 | Release qualification | Yes |
 
-## 6. Documentation and decision management
+## 7. Documentation and decision management
 
 All project documentation must live inside `/docs`.
 
@@ -1357,11 +1418,9 @@ platform compatibility and architectural simplicity.
 - /docs/systems/
 ```
 
-### 6.1 Mandatory documentation relationships
+### 7.1 Mandatory documentation relationships
 
 Every implementation must reference its legacy analysis:
-
-text
 
 ```text
 Legacy source
@@ -1383,7 +1442,7 @@ Performance verification
 
 No major subsystem should be implemented without this traceability.
 
-### 6.2 Changelog rules
+### 7.2 Changelog rules
 
 Every meaningful change must document:
 
@@ -1398,7 +1457,7 @@ Every meaningful change must document:
 - Tests performed.
 - Documentation references.
 
-## 7. Agent and subagent organization
+## 8. Agent and subagent organization
 
 Use local AI agents to divide independent research and implementation work.
 
@@ -1444,7 +1503,7 @@ CPU, GPU, memory
 
 Platform
 
-Void, musl, glibc, Wine
+Void, glibc (musl future), Wine
 
 Security
 
@@ -1463,7 +1522,7 @@ Offline, privacy, isolation
 9. Agents must produce concise completion reports.
 10. Human approval is required before merging major changes.
 
-## 8. Performance targets and qualification criteria
+## 9. Performance targets and qualification criteria
 
 These are initial engineering targets, not claims about what the hardware will achieve. Establish a real baseline before fixing final thresholds.
 
@@ -1476,6 +1535,9 @@ These are initial engineering targets, not claims about what the hardware will a
 | GPU priority | AMD |
 | CPU utilization | Efficient, scalable |
 | Memory | Bounded and profiled |
+| Streaming memory | Explicit ceiling |
+| Streaming hitch | Bounded and measured |
+| Traversal stability | Stable frame times across streaming |
 | Startup | Measured and optimized |
 | Input latency | Minimized and measured |
 | Network activity | Zero |
@@ -1496,22 +1558,21 @@ For peak-performance analysis, capture:
 - Cache misses.
 - Thread scheduling delays.
 - Input-to-display latency.
+- Streaming stalls per minute.
 
 Important: A 244 FPS cap does not mean that every CPU core should remain at 100%. Unnecessary saturation can increase latency and reduce frame stability.
 
-## 9. Additional technical decisions I recommend
+## 10. Additional technical decisions I recommend
 
 There are several areas where the initial requirements need a more precise engineering definition.
 
-### 9.1 musl and glibc
+### 10.1 glibc target and future musl support
 
-Treat these as separate build and compatibility targets.
+glibc is the build and release target for the initial phases. Rust can target both glibc and musl, but native dependencies, Vulkan loader availability, audio backends, and system libraries must be independently validated for each environment.
 
-Rust can target both environments, but native dependencies, Vulkan loader availability, audio backends, and system libraries must be independently validated.
+musl is a keep-in-mind constraint, not a first-phase requirement: avoid glibc-only assumptions and keep native dependencies portable, but do not add musl builds or qualification gates until the glibc target is complete. Do not assume that a musl binary would automatically work in every Void Linux installation.
 
-Do not assume that a musl binary will automatically work in every Void Linux installation.
-
-### 9.2 AMD-first Vulkan implementation
+### 10.2 AMD-first Vulkan implementation
 
 Use a vendor-neutral Vulkan backend with AMD as the primary validation platform.
 
@@ -1519,7 +1580,7 @@ Avoid hardcoding AMD-only functionality into the renderer.
 
 This makes NVIDIA compatibility substantially easier while keeping the primary optimization effort focused on AMD.
 
-### 9.3 GPU and CPU utilization
+### 10.3 GPU and CPU utilization
 
 Implement separate worker pools for:
 
@@ -1531,7 +1592,7 @@ Implement separate worker pools for:
 
 Avoid allowing background asset processing to interfere with the frame-critical execution path.
 
-### 9.4 Network removal
+### 10.4 Network removal
 
 Removing multiplayer must not accidentally remove essential local gameplay logic.
 
@@ -1539,11 +1600,13 @@ Before eliminating any network-related component, establish whether it performs 
 
 Replace those functions locally before removing their dependency.
 
-### 9.5 Legacy security and licensing functionality
+### 10.5 Legacy licensing, activation and integrity functionality
 
-Document every component before removal. Keep the modernization limited to functionality you own or are authorized to modify. Do not bypass third-party DRM or external access controls. The new implementation should have its own transparent local integrity and asset-validation model without unnecessary user tracking.
+The legacy licensing system is dropped entirely: licensing, activation, entitlement validation, hardware binding, and online verification are removed, with no replacement license system. All legacy code and assets are project-owned, so any component may be reworked or removed.
 
-## 10. Final project execution gates
+Document every component before removal. The new implementation keeps only a transparent local integrity and asset-validation model, without unnecessary user tracking.
+
+## 11. Final project execution gates
 
 The project should proceed through the following gates.
 
@@ -1562,9 +1625,7 @@ The project should proceed through the following gates.
 | G10 | Platform compatibility | Void and Wine validated |
 | G11 | Release | Full acceptance suite passes |
 
-Написание текста
-
-# 11\. Master implementation rules
+## 12. Master implementation rules
 
 These rules apply to every task, crate, subsystem, test, and release.
 
@@ -1573,8 +1634,11 @@ These rules apply to every task, crate, subsystem, test, and release.
 - Legacy source code is strictly read-only.
 - New source code belongs exclusively to the new repository.
 - No modifications to original source files.
-- Every reused component must have documented ownership and licensing permission.
+- Every reused component must appear in the dependency inventory with its origin and rationale.
 - No undocumented third-party code imports.
+- No asset file names, paths, or literal asset identifiers in code; reference assets only through registry IDs resolved from the local manifest.
+- Assets are never committed; contributors exchange them via i2pd torrents.
+- Contributors access the repository only through i2pd.
 
 ## Rust
 
@@ -1648,43 +1712,43 @@ These rules apply to every task, crate, subsystem, test, and release.
 
 **Definition of Done:** A subsystem is complete only when its implementation, tests, documentation, offline behavior, performance characteristics, and acceptance criteria have all been verified.
 
-## 12. Recommended implementation order and prioritization
+## 13. Recommended implementation order and prioritization
 
 Although the work breakdown contains many parallel tasks, I would not begin implementing the renderer, gameplay, localization, and persistence simultaneously.
 
 Use these priorities:
 
-Priority 1 — Foundation
+### Priority 1 — Foundation
 
-Critical
+Critical: source preservation, offline infrastructure, indexing, dependency analysis, and documentation.
 
-Source preservation, offline infrastructure, indexing, dependency analysis, and documentation.Priority 2 — Behavior
+### Priority 2 — Behavior
 
-Critical
+Critical: runtime analysis, gameplay specifications, deterministic traces, and mock interfaces.
 
-Runtime analysis, gameplay specifications, deterministic traces, and mock interfaces.Priority 3 — Core Rust engine
+### Priority 3 — Core Rust engine
 
-Critical
+Critical: application lifecycle, world simulation, rendering, input, audio, and persistence.
 
-Application lifecycle, world simulation, rendering, input, audio, persistence.Priority 4 — Offline conversion
+### Priority 4 — Offline conversion
 
-Critical
+Critical: local-only gameplay and elimination of mandatory online dependencies.
 
-Local-only gameplay and elimination of mandatory online dependencies.Priority 5 — Localization
+### Priority 5 — Localization
 
-High
+High: multilingual UI, Arabic, Cyrillic, Mandarin, voice-over, and subtitles.
 
-Multilingual UI, Arabic, Cyrillic, Mandarin, voice-over, and subtitles.Priority 6 — Optimization
+### Priority 6 — Optimization
 
-High
+High: Vulkan, AMD, CPU scheduling, memory, streaming, ASM profiling, and 244 FPS qualification.
 
-Vulkan, AMD, CPU scheduling, memory, ASM profiling, and 244 FPS qualification.Priority 7 — Compatibility and release
+### Priority 7 — Compatibility and release
 
-High
+High: Void Linux with glibc, Wine, NTSync, and release qualification.
 
-Void Linux, musl, glibc, Wine, NTSync, and release qualification.
+Deferred items in section 15 are excluded from this priority list.
 
-## 13. What I would establish before starting the actual project
+## 14. What I would establish before starting the actual project
 
 There are five particularly important unknowns that determine the size and order of the implementation:
 
@@ -1692,10 +1756,18 @@ There are five particularly important unknowns that determine the size and order
 2. Actual source composition: Whether the 500 GB includes assets, generated files, build artifacts, multiple revisions, or 500 GB of actual source.
 3. Gameplay dependency: Which game features currently require server-side validation or multiplayer synchronization.
 4. Graphics architecture: Whether the current renderer is DirectX, OpenGL, Vulkan, or a proprietary abstraction.
-5. Asset ownership: Which existing assets, voice recordings, music, fonts, and scripts can legally be carried into the new implementation.
+5. Asset inventory: Which existing assets, voice recordings, music, fonts, and scripts are carried into the new implementation, and in which formats.
 
 These questions should be resolved during the first analysis stage, not guessed during architecture design.
 
 My strongest recommendation: Make Phase 02 and Phase 03 the most thoroughly executed parts of the entire project. A well-documented legacy game with deterministic behavioral specifications is considerably easier to reimplement correctly than a massive collection of C++ files analyzed only through source translation.
 
 The next practical deliverable should be a complete Phase 00–03 execution specification, including individual task IDs, agent assignments, source-analysis workflows, Podman profiles, documentation templates, test contracts, and completion checklists. That would turn this master plan into an executable research and development program.
+
+## 15. Deferred / future work
+
+The following items are explicitly deferred. They must be kept in mind for architecture decisions but are not implemented in the initial phases:
+
+- musl and static-linked build targets.
+- Networking and multiplayer.
+- Networking boundary implementations and mocks: `NetworkTransport`, `SessionProvider`, `RemotePlayerProvider`, `WorldReplication`, `MessageSerializer`, `ConnectionState`, `NetworkClock`, `RemotePersistence`.

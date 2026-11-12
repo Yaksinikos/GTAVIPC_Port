@@ -1,0 +1,21 @@
+* text=auto eol=lf
+
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+
+# Asset binaries are distributed via i2pd torrents and never committed.
+# Rules kept only as a safety net for accidental adds.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ogg binary
+*.wav binary
+*.flac binary
+*.mp3 binary
+*.pak binary
+*.bin binary
