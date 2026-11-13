@@ -104,28 +104,30 @@ All contributors follow the same secure workflow. Game assets are critical proje
 
 ## 3. Project phases and execution order
 
-1. Phase 00 — Project scope, baseline and preservation
+1. Phase 00 — Baseline, preservation and project definition
    Establish the source baseline, read-only guarantees, asset inventory, repository boundaries, and technical acceptance criteria.
-2. Phase 01 — Development environment and offline infrastructure
+2. Phase 01 — Development environment and infrastructure
    Build the Podman environment, local AI integration, reproducible toolchains, source inventory, and test infrastructure.
-3. Phase 02 — Legacy source code analysis
+3. Phase 02 — Legacy source analysis
    Analyze the complete C++ project, dependencies, build system, runtime behavior, data structures, and execution paths.
-4. Phase 03 — Behavioral reconstruction and system documentation
+4. Phase 03 — Behavioral specifications and documentation
    Establish behavior specifications, test scenarios, dependency maps, mock interfaces, and subsystem documentation.
-5. Phase 04 — Target architecture and Rust foundation
+5. Phase 04 — Rust architecture
    Define crate boundaries, engine interfaces, memory management, error handling, threading, GPU interfaces, and platform abstractions.
-6. Phase 05 — Core game reimplementation
+6. Phase 05 — Full game reimplementation
    Rebuild the game loop, world simulation, rendering, input, audio, resources, persistence, and gameplay systems.
-7. Phase 06 — Offline conversion
+7. Phase 06 — Multiplayer and network dependency elimination
    Remove multiplayer and external service dependencies, replace them with deterministic local implementations and mocks.
-8. Phase 07 — Localization and accessibility
+8. Phase 07 — Full localization architecture
    Build the complete multilingual UI, dialogue, subtitle, font, text-layout, and voice-over infrastructure.
 9. Phase 08 — Performance engineering
    Optimize CPU, GPU, memory, I/O, compilation, startup, frame pacing, and latency.
-10. Phase 09 — Linux and Wine compatibility
+10. Phase 09 — Platform compatibility
     Validate Void Linux with glibc, Vulkan, AMD graphics, Wine, NTSync, Wayland, and the specified gaming environment. musl is tracked as future work.
-11. Phase 10 — Final validation and release
-    Complete regression testing, offline security audits, performance qualification, documentation, packaging, and reproducible release builds.
+11. Phase 10 — Testing, verification and quality assurance
+    Complete regression testing, offline security audits, and performance qualification.
+12. Phase 11 — Release engineering
+    Complete documentation, packaging, and reproducible release builds.
 
 ## 4. Critical technical considerations
 
@@ -155,7 +157,7 @@ Importantly, a 500 GB source tree does not imply that every source file must be 
 
 The Google Rust Style Guide must be a mandatory engineering standard, not merely a recommendation.
 
-Reference: [Google Rust Style Guide](<https://google.github.io/styleguide/rustguide.html?utm_source=chatgpt.com>).
+Reference: [Google Rust Style Guide](https://google.github.io/styleguide/rustguide.html).
 
 The project should additionally enforce:
 
@@ -176,7 +178,7 @@ The Google guide should take precedence where its recommendations differ from ge
 
 ### 4.3 REA analysis integration
 
-[morluto/rea — Reverse Engineer Anything](<https://github.com/morluto/rea?utm_source=chatgpt.com>) can be integrated as an optional local analysis tool.
+[morluto/rea — Reverse Engineer Anything](https://github.com/morluto/rea) can be integrated as an optional local analysis tool.
 
 Use it for evidence-backed examination of:
 
@@ -258,7 +260,6 @@ P01.01 — Repository setup
 Recommended initial structure:
 
 ```text
-
 game-modernization/
 ├── .git/
 ├── .gitignore
@@ -358,16 +359,10 @@ P01.02 — Git configuration
 Recommended `.gitattributes`:
 
 ```gitattributes
+# Text: Git detects text files by content and stores and checks them out with LF line endings.
 * text=auto eol=lf
 
-*.rs text eol=lf
-*.toml text eol=lf
-*.md text eol=lf
-*.json text eol=lf
-*.yaml text eol=lf
-*.yml text eol=lf
-*.sh text eol=lf
-
+# Binary safety net for accidental adds: assets are distributed via i2pd torrents and never committed.
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -375,6 +370,8 @@ Recommended `.gitattributes`:
 *.wav binary
 *.flac binary
 *.mp3 binary
+*.ttf binary
+*.otf binary
 *.pak binary
 *.bin binary
 ```
@@ -886,7 +883,7 @@ P06.04 — Licensing removal
 
 ### Phase 07 — Full localization architecture
 
-Mandatory systemLocalization must be implemented as a core architectural system rather than a late-stage translation feature.
+Mandatory system: Localization must be implemented as a core architectural system rather than a late-stage translation feature.
 
 P07.01 — Language infrastructure
 
@@ -954,7 +951,6 @@ P07.05 — Voice-over
 P07.06 — Central language asset structure
 
 ```text
-
 assets/
 └── languages/
     ├── en/
@@ -1291,7 +1287,6 @@ A release is permitted only when:
 I strongly recommend a unified test contract for every feature.
 
 ```text
-
 Feature
 │
 ├── Specification
@@ -1383,8 +1378,6 @@ Use individual decision records, for example:
 `/docs/decisions/ADR-0001-rust-first-architecture.md`
 
 Each decision record should contain:
-
-markdown
 
 ```markdown
 # ADR-0001: Rust-First Architecture
@@ -1629,7 +1622,7 @@ The project should proceed through the following gates.
 
 These rules apply to every task, crate, subsystem, test, and release.
 
-## Source code
+### Source code
 
 - Legacy source code is strictly read-only.
 - New source code belongs exclusively to the new repository.
@@ -1640,7 +1633,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - Assets are never committed; contributors exchange them via i2pd torrents.
 - Contributors access the repository only through i2pd.
 
-## Rust
+### Rust
 
 - Google Rust Style Guide is mandatory.
 - All code must pass formatting and lint checks.
@@ -1652,7 +1645,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - Keep modules and crates focused.
 - Every public API must have appropriate documentation.
 
-## Architecture
+### Architecture
 
 - Rust-first implementation.
 - Modular monolith.
@@ -1664,7 +1657,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - No hidden external communication.
 - Deterministic behavior wherever practical.
 
-## Testing
+### Testing
 
 - Every feature requires unit tests.
 - Every feature requires system tests.
@@ -1675,7 +1668,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - Every test failure must be reproducible.
 - Performance changes must be benchmarked.
 
-## Documentation
+### Documentation
 
 - All documentation belongs in `/docs`.
 - Every analyzed legacy subsystem gets its own Markdown document.
@@ -1685,7 +1678,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - Meaningful changes belong in `/CHANGELOG.md`.
 - No undocumented architectural changes.
 
-## Privacy and network isolation
+### Privacy and network isolation
 
 - No user tracking.
 - No device identification.
@@ -1698,7 +1691,7 @@ These rules apply to every task, crate, subsystem, test, and release.
 - No source-code uploads.
 - No network dependency in ordinary gameplay.
 
-## Release requirements
+### Release requirements
 
 - Reproducible builds.
 - Verified dependencies.

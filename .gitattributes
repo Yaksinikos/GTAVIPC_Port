@@ -1,15 +1,7 @@
+# Text: Git detects text files by content and stores and checks them out with LF line endings.
 * text=auto eol=lf
 
-*.rs text eol=lf
-*.toml text eol=lf
-*.md text eol=lf
-*.json text eol=lf
-*.yaml text eol=lf
-*.yml text eol=lf
-*.sh text eol=lf
-
-# Asset binaries are distributed via i2pd torrents and never committed.
-# Rules kept only as a safety net for accidental adds.
+# Binary safety net for accidental adds: assets are distributed via i2pd torrents and never committed.
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -17,5 +9,7 @@
 *.wav binary
 *.flac binary
 *.mp3 binary
+*.ttf binary
+*.otf binary
 *.pak binary
 *.bin binary
